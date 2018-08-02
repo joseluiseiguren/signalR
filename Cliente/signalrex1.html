@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Page Title</title>
+</head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://ajax.aspnetcdn.com/ajax/signalr/jquery.signalr-2.2.2.min.js"></script>
+	
+	<script>	
+		var proxy;
+		
+		$(function(){
+			$.connection.hub.logging = true;
+			
+			var connection = $.hubConnection('http://172.17.17.234:43666/signalr');
+			//var connection = $.hubConnection('http://192.168.1.73:43666/signalr');
+			//var connection = $.hubConnection('http://localhost:43666/signalr');
+			//var connection = $.hubConnection('http://127.0.0.1:43666');
+			//var connection = $.hubConnection('http://LAPTOP-DL9RBV6G:43666');
+					
+			proxy = connection.createHubProxy('MyHub');
+			proxy.on('newMessage', onNewMessage);
+			
+			connection.start({ jsonp: true, transport: ['webSockets'] })
+				.done(function() {
+					$('#conexion').text('Conectado a: ' + connection.baseUrl);
+				})
+				.fail(function (e) {
+					$('#conexion').text(e);					
+				});
+		});
+		
+		function onNewMessage(message){
+			$('#ulJos').append('<li>' + message + '</li>');
+		};
+    </script>	
+<body>
+
+<h1>SignalR Joseph Example</h1>
+<h2 id='conexion'>No Conectado</h2>
+<ul id='ulJos'>
+  
+</ul>
+
+</body>
+</html>

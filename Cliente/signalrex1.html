@@ -1,46 +1,133 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+<style type="text/css">
+	#divconections {
+		float: left;
+		display:inline-block;
+		width:50%;
+	}
+	
+	#divmessages {
+		float: left;
+		display:inline-block;
+		width:50%;
+	}
+</style>
+
 <title>Page Title</title>
+
 </head>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://ajax.aspnetcdn.com/ajax/signalr/jquery.signalr-2.2.2.min.js"></script>
 	
-	<script>	
-		var proxy;
+	<script>
+		//server ip and port
+		let serverUrl = 'http://localhost:43666/signalr';
+		let signalrConection = $.hubConnection(serverUrl);
 		
-		$(function(){
-			$.connection.hub.logging = true;
+		//signalR configuration. must be executed 1 time
+		function Configuration(){
+								
+			let proxy = signalrConection.createHubProxy('MyHub');
 			
-			var connection = $.hubConnection('http://172.17.17.234:43666/signalr');
-			//var connection = $.hubConnection('http://192.168.1.73:43666/signalr');
-			//var connection = $.hubConnection('http://localhost:43666/signalr');
-			//var connection = $.hubConnection('http://127.0.0.1:43666');
-			//var connection = $.hubConnection('http://LAPTOP-DL9RBV6G:43666');
-					
-			proxy = connection.createHubProxy('MyHub');
+			//this function will be called by the server
 			proxy.on('newMessage', onNewMessage);
 			
-			connection.start({ jsonp: true, transport: ['webSockets'] })
+			//if the conection is interrupted (and no reconection is succeded), this method is executed
+			signalrConection.disconnected(function(e) {
+				$('#conectionreport').append('<li>Disconected</li>');				
+			});
+
+			//the conection is interrupted, try to reconect 3 times
+			signalrConection.reconnecting(function() {
+				$('#conectionreport').append('<li>Trying to reconect...</li>');				
+			});
+
+			//the reconection was succesfully
+			signalrConection.reconnected(function() {
+				$('#conectionreport').append('<li>Reconected to ' + signalrConection.baseUrl + '</li>');
+			});			
+			
+			//the client detect that the conection is slow
+			signalrConection.connectionSlow(function() {
+				$('#conectionreport').append('<li>Detected slow conection...</li>');								
+			});
+		}
+	
+		//try to start the conection
+		function StartConection(){
+			
+			$('#conectionreport').append('<li>Trying to connect with: ' + serverUrl + '</li>');			
+			
+			//send data to the server in the connect event			
+			signalrConection.qs = { 'usuario' : 'pepe' };
+			
+			//connect to server
+			signalrConection.start({ jsonp: true, transport: ['webSockets'], qs: "myInfo=12345" })
 				.done(function() {
-					$('#conexion').text('Conectado a: ' + connection.baseUrl);
+					$('#conectionreport').append('<li>Conected to: ' + signalrConection.baseUrl + '</li>');
 				})
 				.fail(function (e) {
-					$('#conexion').text(e);					
-				});
-		});
+					$('#conectionreport').append('<li>Fail Conection: ' + e + '</li>');					
+				})
+				.qs="myInfo=12345";
+		};
 		
+		//document ready
+		$(function(){
+			Configuration();
+			StartConection();				
+			
+			//link to close the conection
+			$('#closeConection').click( 
+				function(e) {
+					e.preventDefault();
+					CloseConnection();
+					return false; 
+				} 
+			);
+			
+			//link to reconnect
+			$('#reConnect').click( 
+				function(e) {
+					e.preventDefault();
+					CloseConnection();
+					StartConection();
+					return false; 
+				} 
+			);
+		});			
+		
+		//function called by the server
 		function onNewMessage(message){
 			$('#ulJos').append('<li>' + message + '</li>');
 		};
+		
+		//close conection manualy
+		function CloseConnection(){
+			signalrConection.stop();			
+		}
     </script>	
 <body>
 
 <h1>SignalR Joseph Example</h1>
-<h2 id='conexion'>No Conectado</h2>
-<ul id='ulJos'>
-  
-</ul>
+
+<div id="divconections">
+	<a href="#" id="reConnect">Reconnect</a>
+	<label> | </label>
+	<a href="#" id="closeConection">Close Conection</a>
+	<h2>Conection Report</h2>
+	<ul id='conectionreport'>
+	</ul>
+</div>
+
+<div id="divmessages">
+	<h2>Messages Received</h2>
+	<ul id='ulJos'>  
+	</ul>
+</div>
 
 </body>
 </html>
